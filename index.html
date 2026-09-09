@@ -10,7 +10,10 @@
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:manipulation}
 body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
-#cv{position:fixed;inset:0;display:block;touch-action:none;cursor:pointer}
+/* THE FIX: a canvas is a replaced element, so inset:0 does NOT stretch it —
+   it must be given an explicit CSS size or it renders at backing-store size
+   (viewport × dpr) and the view ends up shifted up-left on scaled displays. */
+#cv{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
 
 /* ---- chunky white text with black outline (GD style) ---- */
 .gd-outline{color:#fff;--ow:3px;
@@ -31,9 +34,10 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
 #logoTxt{display:none;font-size:clamp(38px,9vw,92px);letter-spacing:2px;margin-top:8vh}
 #menuMid{flex:1;width:100%;display:flex;align-items:center;justify-content:center}
 #playBtn{background:none;border:none;cursor:pointer;padding:0;line-height:0}
-/* no opacity gating: the button is visible from the very first frame */
 #playImg{width:clamp(110px,16vw,175px);height:auto;display:block}
-#menuHint{margin-bottom:4.5vh;font-size:15px;--ow:2px;opacity:.9;letter-spacing:1px;text-align:center}
+#menuHint{margin-bottom:4.5vh;font-size:15px;--ow:2px;opacity:.9;letter-spacing:1px;text-align:center;line-height:1.7}
+#rotateHint{display:none;font-size:13px;--ow:2px;opacity:.85;margin-bottom:10px}
+@media (orientation:portrait) and (max-width:620px){#rotateHint{display:block}}
 /* play button bounce: grow on hover, shrink back on un-hover */
 @keyframes growBounce{0%{transform:scale(1)}55%{transform:scale(1.18)}78%{transform:scale(1.08)}100%{transform:scale(1.12)}}
 @keyframes shrinkBounce{0%{transform:scale(1.12)}55%{transform:scale(.94)}80%{transform:scale(1.02)}100%{transform:scale(1)}}
@@ -108,6 +112,7 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
       <img id="playImg" draggable="false" referrerpolicy="no-referrer" width="120" height="120" alt="Play">
     </button>
   </div>
+  <div id="rotateHint" class="gd-outline">tip: landscape gives more reaction time</div>
   <div id="menuHint" class="gd-outline">press play to pick a level<br>click, tap or press space to jump</div>
 </div>
 
@@ -219,11 +224,15 @@ let W = 1, H = 1, BLOCK = 1, groundY = 0;
 function resize() {
   W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);  // backing store
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';            // displayed size (second guarantee)
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   BLOCK = H / VIEW; groundY = H - GROUNDB * BLOCK;
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', resize);
+// catches viewport changes in embeds that don't fire window resize
+if (window.ResizeObserver) { try { new ResizeObserver(() => resize()).observe(document.documentElement); } catch (e) {} }
 resize();
 
 /* ================= assets (every one has a guaranteed-visible fallback) ================= */
