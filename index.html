@@ -31,10 +31,10 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
 #logoTxt{display:none;font-size:clamp(38px,9vw,92px);letter-spacing:2px;margin-top:8vh}
 #menuMid{flex:1;width:100%;display:flex;align-items:center;justify-content:center}
 #playBtn{background:none;border:none;cursor:pointer;padding:0;line-height:0}
-#playImg{width:clamp(110px,16vw,175px);height:auto;display:block;opacity:0;transition:opacity .5s}
-#playImg.on{opacity:1}
-#menuHint{margin-bottom:4.5vh;font-size:15px;--ow:2px;opacity:.9;letter-spacing:1px}
-/* play button bounce: grow on hover, shrink on un-hover */
+/* no opacity gating: the button is visible from the very first frame */
+#playImg{width:clamp(110px,16vw,175px);height:auto;display:block}
+#menuHint{margin-bottom:4.5vh;font-size:15px;--ow:2px;opacity:.9;letter-spacing:1px;text-align:center}
+/* play button bounce: grow on hover, shrink back on un-hover */
 @keyframes growBounce{0%{transform:scale(1)}55%{transform:scale(1.18)}78%{transform:scale(1.08)}100%{transform:scale(1.12)}}
 @keyframes shrinkBounce{0%{transform:scale(1.12)}55%{transform:scale(.94)}80%{transform:scale(1.02)}100%{transform:scale(1)}}
 
@@ -44,7 +44,7 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
 #levelRow{position:relative;width:100%;display:flex;justify-content:center}
 #prevBtn{position:absolute;left:3vw;top:calc(50% - 27px)}
 #nextBtn{position:absolute;right:3vw;top:calc(50% - 27px)}
-#levelCard{width:min(540px,76vw);padding:30px 34px 26px;background:rgba(8,11,26,.55);border:3px solid #fff;border-radius:18px;
+#levelCard{width:min(540px,76vw);padding:28px 34px 24px;background:rgba(8,11,26,.55);border:3px solid #fff;border-radius:18px;
  box-shadow:0 8px 0 rgba(0,0,0,.35);cursor:pointer;text-align:center;
  transition:transform .22s cubic-bezier(.34,1.56,.64,1),background .22s}
 #levelCard:hover{transform:scale(1.04);background:rgba(8,11,26,.78)}
@@ -53,6 +53,8 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
 #cardName{font-size:clamp(30px,5.5vw,46px)}
 #cardSub{margin-top:12px;font-size:17px;--ow:2px;display:flex;align-items:center;justify-content:center;gap:9px;opacity:.95}
 #cardSub svg{width:17px;height:17px}
+#cardPlay{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:18px;font-size:16px;--ow:2px}
+#cardPlay svg{width:15px;height:15px;fill:#fff}
 #dots{display:flex;gap:10px;margin-top:28px}
 #dots i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.3);border:2px solid rgba(0,0,0,.45)}
 #dots i.on{background:#fff}
@@ -98,18 +100,18 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
 
 <!-- ============ MAIN MENU ============ -->
 <div id="menuScr" class="screen">
-  <img id="logoImg" draggable="false" alt="Geometry Dash"
+  <img id="logoImg" draggable="false" referrerpolicy="no-referrer" alt="Geometry Dash"
        src="https://cdn2.steamgriddb.com/logo_thumb/6547489ef6174ae02b6d87ee775b3950.png">
   <div id="logoTxt" class="gd-outline">GEOMETRY DASH</div>
   <div id="menuMid">
     <button id="playBtn" aria-label="Play">
-      <img id="playImg" draggable="false" alt="Play" src="play.png">
+      <img id="playImg" draggable="false" referrerpolicy="no-referrer" width="120" height="120" alt="Play">
     </button>
   </div>
-  <div id="menuHint" class="gd-outline">click, tap or press space to jump</div>
+  <div id="menuHint" class="gd-outline">press play to pick a level<br>click, tap or press space to jump</div>
 </div>
 
-<!-- ============ LEVEL SELECT ============ -->
+<!-- ============ LEVEL SELECT (mandatory stop before any level) ============ -->
 <div id="selectScr" class="screen hidden">
   <button id="backBtn" class="iconbtn" aria-label="Back to menu">
     <svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8 2-2-6-6 6-6z"/></svg>
@@ -125,6 +127,7 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
           d="M12 2.5l2.7 5.8 6.3.8-4.6 4.4 1.2 6.3L12 16.8l-5.6 3 1.2-6.3L3 9.1l6.3-.8z"/></svg>
         <span id="cardSubTxt"></span>
       </div>
+      <div id="cardPlay"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>PLAY</span></div>
     </div>
     <button id="nextBtn" class="iconbtn" aria-label="Next level">
       <svg viewBox="0 0 24 24"><path d="M9 4l8 8-8 8-2-2 6-6-6-6z"/></svg>
@@ -181,7 +184,6 @@ const AIRTIME = 2 * VJ / GRAV;                   // full jump duration
 const ROT_SPEED = (Math.PI / 2) / AIRTIME;       // exactly 90° per jump
 const VIEW = 12, GROUNDB = 3;            // visible vertical blocks / ground height
 const BG_H = 10.5;                       // background tile height (blocks)
-const PLAYER_X = 5;                      // player's resting screen x (blocks)
 
 const C1 = [255, 222, 0];                // yellow (light gray parts)
 const C2 = [64, 229, 255];               // light blue (white parts)
@@ -189,27 +191,33 @@ const C2 = [64, 229, 255];               // light blue (white parts)
 const GROUND_URL = 'https://www.spriters-resource.com/media/asset_icons/133/136043.png';
 const BG_URL = 'https://www.tiermaker.com/images/chart/chart/geometry-dash-backgrounds-796573/gamebg01001png.png';
 const CUBE_URL = 'https://gdbrowser.com/iconkit/premade/cube_25.png';
+// built-in play button: shown instantly, swapped for play.png once it loads
 const PLAY_FALLBACK = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="#39b54a" stroke="#ffffff" stroke-width="8"/><path d="M46 36 L88 60 L46 84 Z" fill="#ffffff"/></svg>');
 
 /* ================= helpers ================= */
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
-const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-const loadImg = (url, cors) => new Promise((res, rej) => {
-  const im = new Image();
-  if (cors) im.crossOrigin = 'anonymous';
-  im.onload = () => res(im); im.onerror = rej;
-  im.src = url;
-});
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; };
+// no-referrer sidesteps referer-based hotlink protection on the asset hosts
+function loadImg(url, cors) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    if (cors) im.crossOrigin = 'anonymous';
+    im.referrerPolicy = 'no-referrer';
+    im.onload = () => { im.naturalWidth > 1 ? res(im) : rej(new Error('empty image')); };
+    im.onerror = () => rej(new Error('failed: ' + url));
+    im.src = url;
+  });
+}
 const hexRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 const rgbStr = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
 const fmtTime = s => { const m = Math.floor(s / 60), r = Math.floor(s % 60); return m + ':' + String(r).padStart(2, '0'); };
 
 /* ================= canvas size ================= */
-let W = 0, H = 0, BLOCK = 0, groundY = 0;
+let W = 1, H = 1, BLOCK = 1, groundY = 0;
 function resize() {
-  W = window.innerWidth; H = window.innerHeight;
+  W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -218,15 +226,15 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-/* ================= assets (with procedural fallbacks) ================= */
+/* ================= assets (every one has a guaranteed-visible fallback) ================= */
 function proceduralGround() {
   const c = mk(256, 256), x = c.getContext('2d');
-  x.fillStyle = '#0e1322'; x.fillRect(0, 0, 256, 256);
-  x.strokeStyle = 'rgba(255,255,255,.06)'; x.lineWidth = 2; x.strokeRect(1, 1, 254, 254);
-  x.strokeStyle = 'rgba(255,255,255,.045)';
+  x.fillStyle = '#1a2233'; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = 'rgba(255,255,255,.09)'; x.lineWidth = 2; x.strokeRect(1, 1, 254, 254);
+  x.strokeStyle = 'rgba(255,255,255,.06)';
   for (let i = 1; i < 4; i++) { x.beginPath(); x.moveTo(i * 64, 0); x.lineTo(i * 64, 256); x.moveTo(0, i * 64); x.lineTo(256, i * 64); x.stroke(); }
-  x.fillStyle = 'rgba(255,255,255,.05)'; x.fillRect(0, 0, 256, 10);
-  x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, 246, 256, 10);
+  x.fillStyle = 'rgba(255,255,255,.09)'; x.fillRect(0, 0, 256, 12);
+  x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(0, 246, 256, 10);
   return c;
 }
 function proceduralBg() {
@@ -250,6 +258,7 @@ function proceduralCube() {
 // crop equal lengths off the left/right so the texture becomes a square
 function squareCrop(im, size) {
   const s = Math.min(im.naturalWidth, im.naturalHeight);
+  if (s < 2) return proceduralGround();
   const c = mk(size, size), x = c.getContext('2d');
   x.imageSmoothingQuality = 'high';
   x.drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, size, size);
@@ -265,8 +274,9 @@ function makeBgTile(im) {
 // recolor the cube: light gray -> yellow (color 1), white -> light blue (color 2)
 function colorizeCube(im) {
   const w = im.naturalWidth, h = im.naturalHeight;
+  if (w < 2 || h < 2) return proceduralCube();
   const c = mk(w, h), x = c.getContext('2d');
-  try { x.drawImage(im, 0, 0); } catch (e) { return c; }
+  try { x.drawImage(im, 0, 0); } catch (e) { return proceduralCube(); }
   let id;
   try { id = x.getImageData(0, 0, w, h); } catch (e) { return c; } // CORS-tainted: keep original
   const d = id.data;
@@ -287,11 +297,13 @@ function colorizeCube(im) {
   return c;
 }
 async function loadCube() {
-  try { return colorizeCube(await loadImg(CUBE_URL, true)); }   catch (e) {}
-  try { return colorizeCube(await loadImg(CUBE_URL, false)); }  catch (e) {}
+  for (const cors of [true, false]) {          // CORS first (allows recoloring), plain second
+    try { return colorizeCube(await loadImg(CUBE_URL, cors)); } catch (e) {}
+  }
   return proceduralCube();
 }
 
+// start with guaranteed-visible procedural tiles; real art swaps in when/if it arrives
 let groundTile = proceduralGround();
 let bgTile = proceduralBg();
 let cubeImg = proceduralCube();
@@ -375,11 +387,11 @@ const AC = {
     if (!this.ctx || !this.mode || this.ctx.state !== 'running') return;
     if (this.next < this.ctx.currentTime - 0.2) this.next = this.ctx.currentTime + 0.05;
     const ahead = this.ctx.currentTime + 0.18;
-    const bpm = this.mode === 'menu' ? 100 : 128, steps = this.mode === 'menu' ? 64 : 64;
+    const bpm = this.mode === 'menu' ? 100 : 128;
     while (this.next < ahead) {
       this.playStep(this.mode, this.step, this.next);
       this.next += 60 / bpm / 4;
-      this.step = (this.step + 1) % steps;
+      this.step = (this.step + 1) % 64;
     }
   },
   playStep(mode, s, t) {
@@ -533,7 +545,7 @@ const S = {
   screen: 'menu', paused: false,
   hue: 205, menuGround: 0, menuBg: 0,
   selIdx: 0, selColor: hexRgb(LEVELS[0].color),
-  level: null, objects: [], sub: 'intro',
+  level: null, objects: [], sub: 'intro', playerX: 5,
   cam: 0, bgOff: 0,
   attempts: 1, jumps: 0, startTime: 0,
   deadT: 0, winT: 0,
@@ -542,6 +554,8 @@ const S = {
 const P = { x: -2.2, y: 0, vy: 0, rot: 0, grounded: true };
 const input = { held: false };
 let objIdx = 0, dustAcc = 0, lastPct = -1;
+// player's resting screen position (blocks), pulled in on narrow screens
+const calcPlayerX = () => Math.min(5, Math.max(2.2, (W / BLOCK) * 0.3));
 
 /* ================= drawing ================= */
 function drawBg(offset, color) {
@@ -552,13 +566,21 @@ function drawBg(offset, color) {
   for (let x = -off * BLOCK; x < W; x += tw) ctx.drawImage(t, x, groundY - th, tw, th);
 }
 function drawGround(offset, color) {
+  // opaque base first: even a fully transparent texture can never hide the ground
+  ctx.fillStyle = '#141b2b';
+  ctx.fillRect(0, groundY, W, H - groundY);
   const t = tinted(groundTile, color);
   const off = ((offset % 1) + 1) % 1;
   for (let x = -off * BLOCK; x < W; x += BLOCK)
     for (let y = groundY; y < H; y += BLOCK)
       ctx.drawImage(t, x, y, BLOCK, BLOCK);
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.fillRect(0, groundY, W, Math.max(2, BLOCK * 0.045));
+  // bright top edge + lit strip (GD ground line)
+  ctx.fillStyle = 'rgba(255,255,255,.95)';
+  ctx.fillRect(0, groundY, W, Math.max(2, BLOCK * 0.05));
+  const g0 = ctx.createLinearGradient(0, groundY, 0, groundY + BLOCK * 0.5);
+  g0.addColorStop(0, 'rgba(255,255,255,.2)'); g0.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g0; ctx.fillRect(0, groundY, W, BLOCK * 0.5);
+  // depth shading toward the bottom
   const g = ctx.createLinearGradient(0, groundY, 0, H);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.45)');
   ctx.fillStyle = g; ctx.fillRect(0, groundY + 2, W, H - groundY - 2);
@@ -715,7 +737,8 @@ function die() {
 }
 function respawn() {
   S.attempts++; S.sub = 'playing';
-  P.x = PLAYER_X; P.y = 0; P.vy = 0; P.rot = 0; P.grounded = true;
+  S.playerX = calcPlayerX();
+  P.x = S.playerX; P.y = 0; P.vy = 0; P.rot = 0; P.grounded = true;
   S.cam = 0; S.bgOff = 0; objIdx = 0; dustAcc = 0;
   S.particles.length = 0; S.rings.length = 0;
   AC.setMode('level');
@@ -752,7 +775,7 @@ function step(st) {
   else if (!wasG) { P.rot = Math.ceil(P.rot / (Math.PI / 2)) * (Math.PI / 2); landDust(); }
 
   if (S.sub === 'playing' && P.x > S.level.len + 4) { win(); return; }
-  if (S.sub === 'intro' && P.x >= PLAYER_X) { P.x = PLAYER_X; S.sub = 'playing'; }
+  if (S.sub === 'intro' && P.x >= S.playerX) { P.x = S.playerX; S.sub = 'playing'; }
 }
 
 /* ================= main loop ================= */
@@ -771,7 +794,7 @@ function update(dt) {
       while (acc > 1e-6 && (S.sub === 'intro' || S.sub === 'playing')) {
         const st = Math.min(1 / 240, acc); acc -= st; step(st);
       }
-      if (S.sub === 'playing') { S.cam = P.x - PLAYER_X; S.bgOff += BG_SPEED * dt; }
+      if (S.sub === 'playing') { S.cam = P.x - S.playerX; S.bgOff += BG_SPEED * dt; }
       if (P.grounded && S.sub === 'playing') {
         dustAcc += dt;
         while (dustAcc > 0.07) { dustAcc -= 0.07; S.particles.push(dust(-0.05, 0.4)); }
@@ -789,17 +812,19 @@ function update(dt) {
     }
     updateParticles(dt); updateConfetti(dt);
     const total = S.level.len + 4;
-    const pct = Math.max(0, Math.min(99, Math.round((P.x - PLAYER_X) / (total - PLAYER_X) * 100)));
+    const pct = Math.max(0, Math.min(99, Math.round((P.x - S.playerX) / (total - S.playerX) * 100)));
     if (pct !== lastPct) { lastPct = pct; progBar.style.width = pct + '%'; progPct.textContent = pct + '%'; }
   }
 }
-let lastT = performance.now();
+let lastT = performance.now(), loggedErr = false;
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = (now - lastT) / 1000; lastT = now;
   if (dt > 0.05) dt = 0.05; if (dt < 0) dt = 0;
   if (S.screen === 'game' && S.paused) return;
-  update(dt); render();
+  // one bad frame can never blank the whole screen
+  try { update(dt); render(); }
+  catch (e) { if (!loggedErr) { loggedErr = true; console.error(e); } }
 }
 
 /* ================= screens & UI ================= */
@@ -828,11 +853,12 @@ function goto(fn) {
     });
   }, 230);
 }
-function startLevel(i) {
+function startLevel(i) {  // the ONLY way into a level: from the level select card
   const L = LEVELS[i];
   S.level = L; S.objects = L.make();
   setScreen('game');
   S.sub = 'intro'; S.cam = 0; S.bgOff = 0; objIdx = 0; dustAcc = 0;
+  S.playerX = calcPlayerX();
   S.attempts = 1; S.jumps = 0; S.startTime = performance.now();
   P.x = -2.2; P.y = 0; P.vy = 0; P.rot = 0; P.grounded = true;
   S.particles.length = 0; S.rings.length = 0; S.confetti = [];
@@ -864,6 +890,22 @@ function resumeGame() {
   if (AC.ctx) AC.ctx.resume();
 }
 
+/* ---- play button: built-in button is visible instantly; play.png swaps in when it loads ---- */
+const playImg = $('playImg');
+playImg.src = PLAY_FALLBACK;                  // guaranteed visible from frame one
+const tryPlay = new Image();
+tryPlay.referrerPolicy = 'no-referrer';
+tryPlay.onload = () => { playImg.src = 'play.png'; };   // confirmed loadable -> use the real one
+tryPlay.src = 'play.png';
+
+/* ---- logo: image with a hard text fallback (error OR never resolving) ---- */
+const logoImg = $('logoImg'), logoTxt = $('logoTxt');
+let logoDone = false;
+const logoFallback = () => { if (logoDone) return; logoDone = true; logoImg.style.display = 'none'; logoTxt.style.display = 'block'; };
+logoImg.addEventListener('load', () => { logoDone = true; logoImg.classList.add('on'); });
+logoImg.addEventListener('error', logoFallback);
+setTimeout(() => { if (!(logoImg.complete && logoImg.naturalWidth > 0)) logoFallback(); }, 5000);
+
 /* play button hover: grow with a bounce, shrink back with a bounce */
 const playBtn = $('playBtn');
 playBtn.addEventListener('mouseenter', () => {
@@ -875,13 +917,14 @@ playBtn.addEventListener('mouseleave', () => {
   playBtn.style.animation = 'shrinkBounce .34s ease forwards';
 });
 
-playBtn.addEventListener('click', () => goto(() => setScreen('select')));
+/* ---- navigation: menu -> level select -> level, no shortcuts ---- */
+playBtn.addEventListener('click', () => { AC.ensure(); goto(() => setScreen('select')); });
  $('backBtn').addEventListener('click', () => goto(() => setScreen('menu')));
  $('prevBtn').addEventListener('click', () => switchLevel(-1));
  $('nextBtn').addEventListener('click', () => switchLevel(1));
  $('levelCard').addEventListener('click', () => goto(() => startLevel(S.selIdx)));
  $('levelCard').addEventListener('keydown', e => {
-  if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); goto(() => startLevel(S.selIdx)); }
+  if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); goto(() => startLevel(S.selIdx)); }
 });
  $('pauseBtn').addEventListener('click', pauseGame);
  $('resumeBtn').addEventListener('click', resumeGame);
@@ -898,21 +941,10 @@ function updateMuteIcon() { muteBtn.innerHTML = AC.muted ? MUTE_SVG : SOUND_SVG;
 muteBtn.addEventListener('click', () => { AC.ensure(); AC.setMuted(!AC.muted); updateMuteIcon(); });
 updateMuteIcon();
 
-/* DOM image fallbacks */
- $('logoImg').addEventListener('load', () => $('logoImg').classList.add('on'));
- $('logoImg').addEventListener('error', () => { $('logoImg').style.display = 'none'; $('logoTxt').style.display = 'block'; });
-const playImg = $('playImg');
-playImg.addEventListener('load', () => playImg.classList.add('on'));
-playImg.addEventListener('error', () => {
-  if (playImg.dataset.fb) return;
-  playImg.dataset.fb = '1';
-  playImg.src = PLAY_FALLBACK;
-  playImg.classList.add('on');
-});
-
 /* ================= input ================= */
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); AC.ensure(); input.held = true; }
+  else if (e.code === 'Enter' && S.screen === 'menu' && !fading) { goto(() => setScreen('select')); }
   else if (e.code === 'Escape' || e.code === 'KeyP') {
     if (S.screen === 'game') { S.paused ? resumeGame() : pauseGame(); }
   }
