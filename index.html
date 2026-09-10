@@ -97,7 +97,9 @@ body{font-family:'Pusab','Titan One','Arial Rounded MT Bold',sans-serif}
   <div id="logoTxt" class="gd-outline">GEOMETRY DASH</div>
   <div id="menuMid">
     <button id="playBtn" aria-label="Play">
-      <img id="playImg" draggable="false" referrerpolicy="no-referrer" width="120" height="120" alt="Play">
+      <!-- built-in button baked into the HTML: always visible even before JS runs -->
+      <img id="playImg" draggable="false" referrerpolicy="no-referrer" width="120" height="120" alt="Play"
+           src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%3E%3Ccircle%20cx%3D%2260%22%20cy%3D%2260%22%20r%3D%2254%22%20fill%3D%22%2339b54a%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%228%22%2F%3E%3Cpath%20d%3D%22M46%2036%20L88%2060%20L46%2084%20Z%22%20fill%3D%22%23ffffff%22%2F%3E%3C%2Fsvg%3E">
     </button>
   </div>
   <div id="rotateHint" class="gd-outline">tip: landscape gives more reaction time</div>
@@ -172,7 +174,7 @@ const VJ = Math.sqrt(2 * GRAV * JUMP_H);         // launch velocity
 const AIRTIME = 2 * VJ / GRAV;                   // full jump duration
 const ROT_SPEED = Math.PI / AIRTIME;             // 180° per jump — two rotations, double speed
 const VIEW = 12, GROUNDB = 4;            // view height / ground depth (one full 4x4 texture tile)
-const BG_H = 13;                         // background tile height (blocks) — bigger
+const BG_H = 13;                         // background tile height (blocks)
 
 const C1 = [255, 222, 0];                // yellow  — the cube's light gray parts (color 1)
 const C2 = [64, 229, 255];               // light blue — the cube's white parts (color 2)
@@ -184,8 +186,6 @@ const BLOCK_URL = 'https://static.wikia.nocookie.net/geometry-dash/images/0/01/R
 const SPIKE_URL = 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/1a711018-ef54-44de-a242-bbda94dfb631/dfixr6b-d1483b50-07a2-48dd-9b52-a9796f626b49.png/v1/fill/w_122,h_122/geometry_dash_spike_by_pastilias2011_dfixr6b-fullview.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTIyIiwicGF0aCI6Ii9mLzFhNzExMDE4LWVmNTQtNDRkZS1hMjQyLWJiZGE5NGRmYjYzMS9kZml4cjZiLWQxNDgzYjUwLTA3YTItNDhkZC05YjUyLWE5Nzk2ZjYyNmI0OS5wbmciLCJ3aWR0aCI6Ijw9MTIyIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.s35Z93S0yepHdE3Xq_SB3uXkxkThOvpnLBarUUslWrg';
 const SONG_URL = 'https://us-tuna-sounds-files.voicemod.net/53eb4a34-e94c-449e-8c15-9c52b09361bb-1701906913972.mp3';
 const DEATH_URL = 'https://us-tuna-sounds-files.voicemod.net/7996693a-f1e0-495b-8b59-2d3e9e098dc6-1707161393349.mp3';
-const PLAY_FALLBACK = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="#39b54a" stroke="#ffffff" stroke-width="8"/><path d="M46 36 L88 60 L46 84 Z" fill="#ffffff"/></svg>');
 
 /* ================= helpers ================= */
 const $ = id => document.getElementById(id);
@@ -344,7 +344,6 @@ function edgeBand(src, shrink) {   // white band following the silhouette edge
 function buildSprite(tile) {
   const T = SPRITE_T, M = SPRITE_M;
   // working tile: white outline band stamped over the original black one
-  // (the black gradient inside the texture is left untouched)
   const w = mk(T, T), wx = w.getContext('2d');
   wx.drawImage(tile, 0, 0);
   wx.drawImage(edgeBand(w, 0.80), 0, 0);
@@ -353,7 +352,6 @@ function buildSprite(tile) {
   // sprite = tile + margin, with a white glow around the outline (inside and out)
   const Ssz = T + 2 * M;
   const spr = mk(Ssz, Ssz), sx = spr.getContext('2d');
-  // outer glow: additive dilated copies of the outlined tile
   sx.globalCompositeOperation = 'lighter';
   for (let a = 0; a < 12; a++) {
     sx.globalAlpha = 0.06;
@@ -362,13 +360,11 @@ function buildSprite(tile) {
     sx.drawImage(w, M + Math.cos(a * Math.PI / 6) * 22, M + Math.sin(a * Math.PI / 6) * 22);
   }
   sx.globalAlpha = 1; sx.globalCompositeOperation = 'source-over';
-  // texture with a soft white shadow = the smooth part of the outer glow
   sx.save();
   sx.shadowColor = 'rgba(255,255,255,.6)';
   sx.shadowBlur = 26;
   sx.drawImage(w, M, M);
   sx.restore();
-  // inner glow hugging the outline
   sx.globalCompositeOperation = 'lighter';
   for (const [ox, oy, al] of [[0, 0, .28], [3, 0, .11], [-3, 0, .11], [0, 3, .11], [0, -3, .11],
                               [4, 4, .07], [-4, 4, .07], [4, -4, .07], [-4, -4, .07]]) {
@@ -434,15 +430,23 @@ function tinted(src, color) {
   return c;
 }
 
-/* ================= audio ================= */
-/* Menu song + death SFX are plain looping/one-shot <audio> elements (no CORS needed);
-   the WebAudio synth remains as the in-level music and as a fallback if the files fail. */
+/* ================= external sounds (menu song + death SFX) ================= */
+/* Plain <audio> elements (no CORS needed); the WebAudio synth below is the
+   in-level music and the fallback if these files fail to load. */
 const menuSong = new Audio(SONG_URL);
 menuSong.loop = true; menuSong.preload = 'auto'; menuSong.volume = 0.6;
 const deathSound = new Audio(DEATH_URL);
 deathSound.preload = 'auto'; deathSound.volume = 0.85;
 let songOk = null, deathOk = null;
-menuSong.addEventListener('error', () => { songOk = false; if ((S.screen === 'menu' || S.screen === 'select') && AC.mode !== 'menu') AC.setMode('menu'); });
+// NOTE: AC is defined further down, so nothing at this point may read it —
+// the saved mute state is read directly instead (this was the crash last time).
+const initMuted = localStorage.getItem('gd_mute') === '1';
+menuSong.muted = initMuted;
+deathSound.muted = initMuted;
+menuSong.addEventListener('error', () => {
+  songOk = false;
+  if (S.screen === 'menu' || S.screen === 'select') { if (AC.mode !== 'menu') AC.setMode('menu'); }
+});
 menuSong.addEventListener('canplaythrough', () => { songOk = true; tryPlayMenu(); });
 deathSound.addEventListener('error', () => { deathOk = false; });
 deathSound.addEventListener('canplaythrough', () => { deathOk = true; });
@@ -462,8 +466,8 @@ function applyMute(m) {
   AC.setMuted(m);
   menuSong.muted = m; deathSound.muted = m;
 }
-menuSong.muted = AC.muted; deathSound.muted = AC.muted;
 
+/* ================= WebAudio synth (level music + fallbacks) ================= */
 const NB = { A1: 55, A2: 110, B2: 123.47, C3: 130.81, E3: 164.81, F2: 87.31, G2: 98 };
 const bassL = [
   NB.A2,0,NB.A2,0, NB.A2,0,NB.G2,0,  NB.A2,0,NB.A2,0, NB.C3,0,NB.A2,0,
@@ -483,7 +487,7 @@ const menuBass = [55, 87.31, 130.81, 98];
 
 const AC = {
   ctx: null, master: null, delay: null, noiseBuf: null, timer: null,
-  muted: localStorage.getItem('gd_mute') === '1',
+  muted: initMuted,
   mode: null, step: 0, next: 0,
   ensure() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
@@ -1016,9 +1020,8 @@ function resumeGame() {
   if (AC.ctx) AC.ctx.resume();
 }
 
-/* ---- play button: built-in button is visible instantly; play.png swaps in when it loads ---- */
+/* ---- play button: the built-in image is in the HTML; play.png swaps in when it loads ---- */
 const playImg = $('playImg');
-playImg.src = PLAY_FALLBACK;
 const tryPlay = new Image();
 tryPlay.referrerPolicy = 'no-referrer';
 tryPlay.onload = () => { playImg.src = 'play.png'; };
@@ -1079,6 +1082,7 @@ window.addEventListener('keyup', e => {
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.held = false;
 });
 cv.addEventListener('pointerdown', e => { e.preventDefault(); AC.ensure(); tryPlayMenu(); input.held = true; });
+window.addEventListener('pointerdown', () => { AC.ensure(); tryPlayMenu(); });   // audio unlock on any tap
 window.addEventListener('pointerup', () => { input.held = false; });
 window.addEventListener('pointercancel', () => { input.held = false; });
 cv.addEventListener('contextmenu', e => e.preventDefault());
